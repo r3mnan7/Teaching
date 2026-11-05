@@ -1,0 +1,179 @@
+---
+title: "Integration"
+source: https://pwning.owasp-juice.shop/companion-guide/latest/part4/integration.html
+tags: [juiceshop, owasp, companion-guide]
+---
+
+# Integration
+
+← Previous: [[07 Vendor's guide|Vendor's guide]]
+Next: [[09 Monitoring|Monitoring]] →
+
+OWASP Juice Shop follows strict conventions for describing challenges. These allow you to easily integrate Juice Shop tutorials, hints and solutions into your own security guides, knowledge bases, testing labs etc.
+
+## Challenges API
+
+The endpoint `/api/Challenges` on your local Juice Shop instance (i.e. [http://localhost:3000/api/Challenges](http://localhost:3000/api/Challenges)) returns information on the configured challenges along with their current state in an easily consumable JSON format:
+
+``` highlightjs
+{
+   "status":"success",
+   "data":[
+      {
+         "id":1,
+         "key":"restfulXssChallenge",
+         "name":"API-only XSS",
+         "category":"XSS",
+         "description":"Perform a <i>persisted</i> XSS attack with <code>&lt;iframe src=\"javascript:alert(`xss`)\"&gt;</code> without using the frontend application at all. <em>(This challenge is <strong>not available</strong> on Heroku!)</em>",
+         "difficulty":3,
+         "solved":false,
+         "disabledEnv":"Heroku",
+         "createdAt":"2020-03-23T12:00:34.258Z",
+         "updatedAt":"2020-03-23T12:00:34.258Z"
+      },
+      {
+         "id":2,
+         "key":"accessLogDisclosureChallenge",
+         "name":"Access Log",
+         "category":"Sensitive Data Exposure",
+         "description":"Gain access to any access log file of the server.",
+         "difficulty":4,
+         "solved":false,
+         "disabledEnv":null,
+         "createdAt":"2020-03-23T12:00:34.259Z",
+         "updatedAt":"2020-03-23T12:00:34.259Z"
+      },
+      {
+        "...":"..."
+      }
+   ]
+}
+```
+
+Instead of your own local instance you can also use the API of the publicly available demo instances to pull challenge information:
+
+- [http://demo.owasp-juice.shop/api/Challenges](http://demo.owasp-juice.shop/api/Challenges) for the latest released version (`master` branch)
+
+- [http://preview.owasp-juice.shop/api/Challenges](http://preview.owasp-juice.shop/api/Challenges) for the next version to be released (`develop` branch)
+
+|  |  |
+|---|---|
+|  | There is no uptime guarantee for either of these as they are both only free Heroku dynos. Please refrain from making unnecessary amounts of requests. |
+
+### API integration example
+
+- The [Juice Shop CTF Extension](https://www.npmjs.com/package/juice-shop-ctf-cli) calls the API of a specified Juice Shop instance [[04 Hosting a CTF event|to retrieve the challenges to later import into a CTF score server]].
+
+## Challenge declaration file
+
+The single source of truth for challenges in OWASP Juice Shop is its `data/static/challenges.yml` file. It is used during start-up of the application to populate the `Challenges` table which is then exposed via the [Challenges API](#_challenges_api) endpoint.
+
+Parsing this file directly for integration makes sense when you do not rely on changed settings (e.g. hints being turned off) from an individual [[02 Customization|Customization]] and/or you do not have a running Juice Shop instance available in the first place.
+
+``` highlightjs
+-
+  name: 'Some Name'
+  category: 'Category of the challenge'
+  tags:
+    - First tag
+    - Second tag
+  description: 'Here the actual task for the attacker is described.'
+  difficulty: 1 # a number between 1 and 6
+  hints:
+    - 'The first hint that can be unlocked via the Score Board'
+    - 'The second hint to unlock. Challenges should have at least 2-3 hints.'
+    - 'The final hint to unlock. More than 6 hints are discouraged.'
+  mitigationUrl: 'https://cheatsheetseries.owasp.org/cheatsheets/Optional_Url_to_a_relevant_Owasp_Cheat_Sheet_or_similar_document.html'
+  key: someNameChallenge
+  disabledEnv: # (optional) to disable challenges dangerous or incompatible in certain environments
+    - Docker
+    - Heroku
+    - Windows
+  tutorial: # (optional) present only on challenges with a Hacking Instructor tutorial
+    order: 1 # a unique number to specify the recommended order of tutorials
+```
+
+The latest versions of the `challenges.yml` file can be found here:
+
+- [https://raw.githubusercontent.com/juice-shop/juice-shop/master/data/static/challenges.yml](https://raw.githubusercontent.com/juice-shop/juice-shop/master/data/static/challenges.yml) for the latest released version (`master` branch)
+
+- [https://raw.githubusercontent.com/juice-shop/juice-shop/develop/data/static/challenges.yml](https://raw.githubusercontent.com/juice-shop/juice-shop/develop/data/static/challenges.yml) for a snapshot of the next version to be released (`develop` branch)
+
+### Generating links to Juice Shop
+
+| Description | Link composition | Condition | Examples |
+|---|---|---|---|
+| Link to a specific challenge on the Score Board | `/#/score-board?searchQuery=<name>` (or `/#/score-board?challenge=<name>` as an alias) | Will filter the Score Board resulting in just the one matching challenge. | [http://localhost:3000/#/score-board?searchQuery=DOM%20XSS](http://localhost:3000/#/score-board?searchQuery=DOM%20XSS) or [http://preview.owasp-juice.shop/#/score-board?searchQuery=Score%20Board](http://preview.owasp-juice.shop/#/score-board?searchQuery=Score%20Board) (or as their aliases [http://localhost:3000/#/score-board?challenge=DOM%20XSS](http://localhost:3000/#/score-board?challenge=DOM%20XSS) and [http://preview.owasp-juice.shop/#/score-board?challenge=Score%20Board](http://preview.owasp-juice.shop/#/score-board?challenge=Score%20Board)) |
+| Direct link to a [[04 Challenge tracking\|Hacking Instructor]] tutorial for a specific challenge | `/#/hacking-instructor?challenge=<name>` | Only for challenges where `tutorial` is defined. | [http://localhost:3000/#/hacking-instructor?challenge=Score%20Board](http://localhost:3000/#/hacking-instructor?challenge=Score%20Board) or [http://preview.owasp-juice.shop/#/hacking-instructor?challenge=DOM%20XSS](http://preview.owasp-juice.shop/#/hacking-instructor?challenge=DOM%20XSS) |
+
+### YAML integration example
+
+- The official project website [https://owasp-juice.shop](https://owasp-juice.shop) uses (a copy of) the `challenges.yml` to render [*Challenge Categories*](https://owasp.org/www-project-juice-shop/#div-challenges) and [*Hacking Instructor Tutorials*](https://owasp.org/www-project-juice-shop/#div-tutorials) tables with the help of [Liquid Filters](https://jekyllrb.com/docs/liquid/filters/).
+
+## Challenge solution webhook
+
+Any Juice Shop instance can be configured to call a webhook whenever one of its 116 hacking challenges is solved. To use this feature the following environment variable needs to be supplied to the Juice Shop server:
+
+| Environment variable | Expected value | Recommendations |
+|---|---|---|
+| `SOLUTIONS_WEBHOOK` | URL of the webhook Juice Shop is supposed to call whenever a challenge is solved. | The webhook URL should be bound to the user who solved the challenge and allow its provider to verify the Juice Shop origin instance. In most cases **the webhook URL should be treated as sensitive information and not be published or transmitted unencrypted!** |
+
+### Webhook payload
+
+Juice Shop will send a `POST` request to the configured `SOLUTIONS_WEBHOOK` with the following payload:
+
+``` highlightjs
+{ "solution":
+  { "challenge": "<'key' of the solved challenge from ./data/static/challenges.yml>",
+    "hintsAvailable": "<number of available hints for the solved challenge>",
+    "hintsUnlocked": "<number of hints the user had unlocked before solving the challenge>",
+    "cheatScore": "<probability of 0..1 that this solution has been cheated>",
+    "totalCheatScore": "<average probability of 0..1 that solutions up until now have been cheated>",
+    "issuedOn": "<yyyy-MM-ddThh:mm:ssZ>"
+  },
+  "ctfFlag": "<CTF flag code of the solved challenged based on the injected (or default) 'CTF_KEY'>",
+  "issuer": {
+    "hostName": "<server os hostname>",
+    "os": "<server os type (and release)>",
+    "appName": "<'application.name' from loaded YAML configuration in ./config folder>",
+    "config": "<name of the loaded configuration>",
+    "version": "<version from ./package.json>"
+  }
+}
+```
+
+#### Webhook payload example
+
+``` highlightjs
+{
+    "solution": {
+        "challenge": "key",
+        "hintsAvailable": 5,
+        "hintsUnlocked": 2,
+        "cheatScore": 0,
+        "totalCheatScore": 0,
+        "issuedOn": "2020-12-15T18:24:33.027Z"
+    },
+    "ctfFlag": "b0d70dce6cadadb85882ea498fac6785dba2349b",
+    "issuer": {
+        "hostName": "fv-az116-673",
+        "os": "Linux (5.4.0-1031-azure)",
+        "appName": "OWASP Juice Shop",
+        "config": "default",
+        "version": "19.0.0-SNAPSHOT"
+    }
+}
+```
+
+## Vulnerable code snippets API
+
+Any running Juice Shop instance since `v12.7.0` provides two REST endpoints `/snippets` and `/snippets/<challengeKey>` which can be used to retrieve the actual vulnerable code snippets for many of the challenges. These are described in the [[03 Coding challenges|REST endpoints]] section of the [[03 Coding challenges|Vulnerable code snippets]] appendix.
+
+### API integration example
+
+- The Score Board itself is using these endpoints to decide for which challenges to show a code snippet button, and then to subsequently retrieve a code snippet when such a button in clicked.
+
+- The [Juice Shop CTF Extension](https://www.npmjs.com/package/juice-shop-ctf-cli) calls the API of a specified Juice Shop instance [[04 Hosting a CTF event|to retrieve the snippets to later offer them as a hint on a CTF score server]].
+
+[[07 Vendor's guide|Vendor’s guide]] [[09 Monitoring|Monitoring]]
+

@@ -1,0 +1,8 @@
+# Juice Shop appendix: challenge solutions and other appendix pages
+Documentation/JuiceShop/06 Appendix/
+
+# Screenshots and files belonging to the appendix (they show the solutions)
+Documentation/JuiceShop/resources/appendix-*
+
+# macOS
+.DS_Store
