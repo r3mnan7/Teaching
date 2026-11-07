@@ -1,3 +1,6 @@
+---
+tags: [cs361]
+---
 ### Title slide
 
 Trust, Assume, Break, Steer, Impact

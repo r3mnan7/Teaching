@@ -1,3 +1,6 @@
+---
+tags: [cs361]
+---
 ### Title slide
 
 CS 361, Lecture 4: AppSec Part 2
